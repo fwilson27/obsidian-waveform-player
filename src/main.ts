@@ -10,7 +10,20 @@ import { createRoot } from 'react-dom/client';
 import L from './L';
 
 const PLAYER_CLASS = 'waveform-player-widget';
-const AUDIO_LINK_PATTERN = '!\\[([^\\]]*)\\]\\(([^)]+\\.(?:mp3|wav|ogg|m4a|webm|flac))\\)|!\\[\\[([^\\]]+\\.(?:mp3|wav|ogg|m4a|webm|flac))\\]\\]';
+const AUDIO_LINK_PATTERN = '!\\[([^\\]]*)\\]\\(([^)#]+\\.(?:mp3|wav|ogg|m4a|webm|flac))(#t=[^)]*)?[^)]*\\)|!\\[\\[([^\\]#]+\\.(?:mp3|wav|ogg|m4a|webm|flac))(#t=[^\\]]*)?[^\\]]*\\]\\]';
+
+// Parse a Media Fragment URI timestamp (#t=...) into seconds.
+// Supports: #t=90, #t=1:30, #t=1:30:00
+function parseTimestamp(fragment: string | undefined): number {
+  if (!fragment) return 0;
+  const match = fragment.match(/#t=([^,]+)/);
+  if (!match) return 0;
+  const parts = match[1].split(':').map(Number);
+  if (parts.some(isNaN)) return 0;
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+}
 
 // 波形类型枚举
 type WaveformType = 'bars' | 'envelope' | 'line' | 'mirror' | 'wave';
@@ -39,6 +52,7 @@ interface ReadingViewPlayerInfo {
   playerDiv: HTMLElement;
   audioUrl: string;
   title: string;
+  startTime: number;
 }
 
 // 播放器属性接口，用于统一创建播放器组件
@@ -116,6 +130,7 @@ class AudioPlayerWidget extends WidgetType {
     private readonly src: string,
     private readonly title: string,
     private readonly plugin: WaveformPlayerPlugin,
+    private readonly startTime: number = 0,
   ) {
     super();
     this.id = `audio-player-${AudioPlayerWidget.counter++}`;
@@ -153,6 +168,7 @@ class AudioPlayerWidget extends WidgetType {
       other instanceof AudioPlayerWidget &&
       this.src === other.src &&
       this.title === other.title &&
+      this.startTime === other.startTime &&
       this.settingsVersion === other.settingsVersion // 比较设置版本
     );
   }
@@ -196,12 +212,13 @@ class AudioPlayerWidget extends WidgetType {
 
     const audioUrl = this.plugin.app.vault.getResourcePath(audioFile);
     const decodedUrl = decodeURIComponent(audioUrl);
+    const srcWithTimestamp = this.startTime > 0 ? `${decodedUrl}#t=${this.startTime}` : decodedUrl;
 
     try {
       this.root = createRoot(this.playerDiv);
       this.root.render(
         createPlayerElement({
-          src: decodedUrl,
+          src: srcWithTimestamp,
           title: this.title || audioFile.basename,
           plugin: this.plugin,
           id: this.id
@@ -398,18 +415,23 @@ export default class WaveformPlayerPlugin extends Plugin {
       const audioElements = element.querySelectorAll('.internal-embed');
 
       audioElements.forEach((div) => {
-        const src = div.getAttribute('src');
-        if (!src || !/\.(?:mp3|wav|ogg|m4a|webm|flac)$/i.test(src)) {
+        const srcAttr = div.getAttribute('src') || '';
+        const srcMatch = srcAttr.match(/^([^#]+)(#t=.*)?$/);
+        if (!srcMatch) return;
+        const fileSrc = srcMatch[1];
+        const startTime = parseTimestamp(srcMatch[2]);
+        if (!/\.(?:mp3|wav|ogg|m4a|webm|flac)$/i.test(fileSrc)) {
           return;
         }
 
-        const audioFile = this.getAudioFile(src);
+        const audioFile = this.getAudioFile(fileSrc);
         if (!audioFile) {
           return;
         }
 
         const audioUrl = this.app.vault.getResourcePath(audioFile);
         const decodedUrl = decodeURIComponent(audioUrl);
+        const decodedUrl_ts = startTime > 0 ? `${decodedUrl}#t=${startTime}` : decodedUrl;
 
         const container = document.createElement('div');
         container.className = `${PLAYER_CLASS}-container`;
@@ -428,8 +450,9 @@ export default class WaveformPlayerPlugin extends Plugin {
           root,
           container,
           playerDiv,
-          audioUrl: decodedUrl,
+          audioUrl: decodedUrl_ts,
           title: audioFile.basename,
+          startTime,
         };
 
         // 将播放器信息添加到列表中
@@ -455,7 +478,7 @@ export default class WaveformPlayerPlugin extends Plugin {
 
         root.render(
           createPlayerElement({
-            src: decodedUrl,
+            src: decodedUrl_ts,
             title: audioFile.basename,
             plugin: this
           })
@@ -503,10 +526,11 @@ export default class WaveformPlayerPlugin extends Plugin {
       const regex = new RegExp(AUDIO_LINK_PATTERN, 'gi');
 
       Array.from(lineText.matchAll(regex)).forEach((match) => {
-        const [_, title, mdSrc, obsidianSrc] = match;
+        const [_, title, mdSrc, mdTimestamp, obsidianSrc, obsidianTimestamp] = match;
         // 如果是 Obsidian 格式的链接，使用 obsidianSrc 作为源和标题
         const src = obsidianSrc || mdSrc;
         const effectiveTitle = obsidianSrc ? obsidianSrc.split('/').pop()?.replace(/\.[^.]+$/, '') || '' : (title || '');
+        const startTime = parseTimestamp(obsidianTimestamp || mdTimestamp);
 
         if (!src) {
           return;
@@ -521,7 +545,7 @@ export default class WaveformPlayerPlugin extends Plugin {
             block: true, // 添加 block 属性
             persistent: true,
             side: 1, // 在匹配文本后面插入
-            widget: new AudioPlayerWidget(src, effectiveTitle, this),
+            widget: new AudioPlayerWidget(src, effectiveTitle, this, startTime),
           }).range(matchEnd),
         );
       });
