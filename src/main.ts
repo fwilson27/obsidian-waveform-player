@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client';
 import L from './L';
 
 const PLAYER_CLASS = 'waveform-player-widget';
-const AUDIO_LINK_PATTERN = '!\\[([^\\]]*)\\]\\(([^)]+\\.(?:mp3|wav|ogg|m4a|webm))\\)|!\\[\\[([^\\]]+\\.(?:mp3|wav|ogg|m4a|webm))\\]\\]';
+const AUDIO_LINK_PATTERN = '!\\[([^\\]]*)\\]\\(([^)]+\\.(?:mp3|wav|ogg|m4a|webm|flac))\\)|!\\[\\[([^\\]]+\\.(?:mp3|wav|ogg|m4a|webm|flac))\\]\\]';
 
 // 波形类型枚举
 type WaveformType = 'bars' | 'envelope' | 'line' | 'mirror' | 'wave';
@@ -399,7 +399,7 @@ export default class WaveformPlayerPlugin extends Plugin {
 
       audioElements.forEach((div) => {
         const src = div.getAttribute('src');
-        if (!src || !/\.(?:mp3|wav|ogg|m4a|webm)$/i.test(src)) {
+        if (!src || !/\.(?:mp3|wav|ogg|m4a|webm|flac)$/i.test(src)) {
           return;
         }
 
