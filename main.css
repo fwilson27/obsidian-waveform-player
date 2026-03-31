@@ -1,0 +1,144 @@
+@import '@waveform-audio/player/index.css';
+
+/* 基础按钮样式重置 */
+.wa-player button {
+  box-shadow: none;
+  width: auto;
+  height: auto;
+  background-color: transparent;
+  padding: 0;
+}
+
+/* 隐藏默认音频元素 */
+.internal-embed.audio-embed {
+  display: none !important;
+}
+
+/* 播放器容器样式 */
+.waveform-player-widget {
+  border-radius: 8px;
+  overflow: hidden;
+  display: block;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.waveform-player-widget-container {
+  position: relative;
+  width: 100%;
+  display: block;
+  transition: all 0.3s ease;
+  margin: 0.5em 0;
+}
+
+/* 实时预览模式样式 */
+.markdown-source-view.mod-cm6.is-live-preview .cm-content .waveform-player-widget-container {
+  display: block !important;
+  visibility: visible !important;
+  position: relative !important;
+  pointer-events: auto !important;
+  user-select: auto !important;
+  z-index: 1;
+}
+
+/* 实时预览模式下的嵌套样式 */
+.markdown-source-view.mod-cm6.is-live-preview .cm-line .waveform-player-widget-container {
+  margin: 0.5em 0 !important;
+  padding-left: 0.5em !important;
+  border-left: 2px solid var(--interactive-accent);
+}
+
+/* 确保播放器在实时预览模式下可以交互 */
+.markdown-source-view.mod-cm6.is-live-preview .waveform-player-widget {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  position: relative !important;
+  z-index: 2;
+}
+
+/* 优化间距 */
+.waveform-player-widget-container + .waveform-player-widget-container {
+  margin-top: 1em !important;
+}
+
+/* 统一播放器样式 */
+.wa-obsidian-player {
+  border-radius: 8px;
+  padding: 16px;
+  background: transparent;
+  --wa-text-color: var(--text-normal);
+}
+/* Smaller volume and speed icons */
+.wa-volume-control svg,
+.wa-playback-rate-control svg {
+  width: 11px !important;
+  height: 11px !important;
+}
+.wa-volume-control .wa-w-4,
+.wa-playback-rate-control .wa-w-4 {
+  width: 11px !important;
+  height: 11px !important;
+}
+.wa-volume-control,
+.wa-playback-rate-control {
+  font-size: 11px !important;
+}
+
+/* Copy-seek button (icon-only, inline with volume/speed controls) */
+.waveform-copy-seek-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 13px !important;
+  height: 13px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer;
+  opacity: 0.5;
+  flex-shrink: 0;
+  box-shadow: none !important;
+}
+.waveform-copy-seek-button:hover {
+  opacity: 1;
+}
+.waveform-copy-icon {
+  display: block;
+  width: 13px;
+  height: 13px;
+  background-color: var(--text-muted);
+  -webkit-mask-image: url("data:image/png;base64,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");
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+.waveform-copy-check {
+  font-size: 11px;
+  color: var(--color-green);
+  line-height: 1;
+}
+
+/* Seek pill — block widget, minimal vertical footprint */
+.waveform-seek-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--interactive-accent);
+  background: transparent;
+  color: var(--interactive-accent);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--font-monospace);
+  line-height: 1.4;
+  margin: 0;
+  transition: background 0.15s;
+}
+.waveform-seek-button:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.waveform-seek-button-icon {
+  font-size: 8px;
+}
